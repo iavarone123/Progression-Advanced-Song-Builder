@@ -34,91 +34,93 @@ const getRomanNumeral = (degree: number, scale: ScaleType): string => {
 };
 
 /**
- * Helper to shift fret numbers for different roots.
- * Ensures the voicing stays in a playable range on the neck.
+ * Movable Shape Templates (relative to their root string)
  */
-const shiftFrets = (frets: (number | 'x')[], offset: number): (number | 'x')[] => {
-  // Find a version of this offset that keeps the chord in a standard range (0-12)
-  let normalizedOffset = offset;
-  while (normalizedOffset < 0) normalizedOffset += 12;
-  
-  return frets.map(f => {
-    if (f === 'x') return 'x';
-    return (f + normalizedOffset);
-  });
+const SHAPES = {
+  MAJOR: [
+    { name: 'E-shape', rootString: 6, frets: [0, 2, 2, 1, 0, 0] },
+    { name: 'A-shape', rootString: 5, frets: ['x', 0, 2, 2, 2, 0] },
+    { name: 'D-shape', rootString: 4, frets: ['x', 'x', 0, 2, 3, 2] },
+    { name: 'C-shape', rootString: 5, frets: ['x', 3, 2, 0, 1, 0] },
+  ],
+  MINOR: [
+    { name: 'Em-shape', rootString: 6, frets: [0, 2, 2, 0, 0, 0] },
+    { name: 'Am-shape', rootString: 5, frets: ['x', 0, 2, 2, 1, 0] },
+    { name: 'Dm-shape', rootString: 4, frets: ['x', 'x', 0, 2, 3, 1] },
+    { name: 'Gm-shape', rootString: 6, frets: [3, 1, 0, 0, 3, 3] }, // Relative to root
+  ],
+  SEVENTH: [
+    { name: 'E7-shape', rootString: 6, frets: [0, 2, 0, 1, 0, 0] },
+    { name: 'A7-shape', rootString: 5, frets: ['x', 0, 2, 0, 2, 0] },
+    { name: 'D7-shape', rootString: 4, frets: ['x', 'x', 0, 2, 1, 2] },
+    { name: 'C7-shape', rootString: 5, frets: ['x', 3, 2, 3, 1, 'x'] },
+  ],
+  POWER: [
+    { name: 'E-root', rootString: 6, frets: [0, 2, 2, 'x', 'x', 'x'] },
+    { name: 'A-root', rootString: 5, frets: ['x', 0, 2, 2, 'x', 'x'] },
+    { name: 'D-root', rootString: 4, frets: ['x', 'x', 0, 2, 2, 'x'] },
+    { name: 'E-octave', rootString: 6, frets: [12, 14, 14, 'x', 'x', 'x'] },
+  ]
 };
 
 /**
- * Voicing generator providing 4 distinct positions.
- * Descriptions are strictly "Position [Word] [ChordName]".
- * Templates are carefully curated for accuracy.
+ * Finds the fret for a root note on a specific string
+ */
+const getFretForRoot = (root: Note, string: number): number => {
+  const stringRoots: Note[] = ['E', 'A', 'D', 'G', 'B', 'E'];
+  const stringRoot = stringRoots[6 - string];
+  let fret = NOTES.indexOf(root) - NOTES.indexOf(stringRoot);
+  while (fret < 0) fret += 12;
+  return fret;
+};
+
+/**
+ * Generates 4 distinct guitar positions based on music theory
  */
 const generateVoicings = (chordName: string): Voicing[] => {
   const rootMatch = chordName.match(/^([A-G]#?)/);
   if (!rootMatch) return [];
   const root = rootMatch[1] as Note;
-  const rootIdx = NOTES.indexOf(root);
   const quality = chordName.substring(root.length).toLowerCase();
 
-  const offset = rootIdx;
   const displayChord = chordName
-    .replace(/m$/, ' minor')
-    .replace(/m(?=[0-9])/, ' minor ')
-    .replace(/dim$/, ' diminished')
-    .replace(/dom7$/, ' 7')
+    .replace(/m$/, ' Minor')
+    .replace(/m(?=[0-9])/, ' Minor ')
+    .replace(/dim$/, ' Diminished')
     .replace(/7$/, ' 7')
     .replace(/9$/, ' 9')
     .replace(/5$/, ' 5');
 
-  // Templates are defined relative to 'C' (offset 0)
-  
-  if (quality === '5') { // Power Chords
-    return [
-      { frets: shiftFrets([0, 2, 2, 'x', 'x', 'x'], offset), description: `Position one ${chordName}` }, // E string root
-      { frets: shiftFrets(['x', 0, 2, 2, 'x', 'x'], offset), description: `Position two ${chordName}` }, // A string root
-      { frets: shiftFrets([0, 2, 2, 'x', 'x', 'x'], offset + 12), description: `Position three ${chordName}` }, // High octave E
-      { frets: shiftFrets(['x', 0, 2, 2, 'x', 'x'], offset + 12), description: `Position four ${chordName}` }, // High octave A
-    ];
-  }
+  let templates: any[] = [];
+  if (quality === '5') templates = SHAPES.POWER;
+  else if (quality.includes('7') || quality.includes('9')) templates = SHAPES.SEVENTH;
+  else if (quality.includes('m')) templates = SHAPES.MINOR;
+  else templates = SHAPES.MAJOR;
 
-  if (quality.includes('m') && !quality.includes('dim')) { // Minor Chords
-    return [
-      { frets: shiftFrets(['x', 0, 2, 2, 1, 0], offset), description: `Position one ${displayChord}` }, // Am Shape
-      { frets: shiftFrets([0, 2, 2, 0, 0, 0], offset + 8), description: `Position two ${displayChord}` }, // Em Shape
-      { frets: shiftFrets(['x', 'x', 0, 2, 3, 1], offset + 10), description: `Position three ${displayChord}` }, // Dm Shape
-      { frets: shiftFrets(['x', 0, 2, 2, 1, 0], offset + 12), description: `Position four ${displayChord}` }, // Octave Position 1
-    ];
-  }
+  const positions = ['one', 'two', 'three', 'four'];
 
-  if (quality.includes('7') || quality.includes('9')) { // Jazz/Extended
-    return [
-      { frets: shiftFrets(['x', 3, 2, 3, 3, 'x'], offset - 3), description: `Position one ${chordName}` }, // A7/9 Shape
-      { frets: shiftFrets([3, 'x', 3, 4, 3, 'x'], offset - 3), description: `Position two ${chordName}` }, // E7 Shape
-      { frets: shiftFrets(['x', 'x', 0, 1, 1, 0], offset), description: `Position three ${chordName}` }, // D7 Shape
-      { frets: shiftFrets(['x', 3, 2, 3, 3, 'x'], offset + 9), description: `Position four ${chordName}` }, // High Pos
-    ];
-  }
+  return templates.map((tpl, i) => {
+    const rootFret = getFretForRoot(root, tpl.rootString);
+    // For shapes like C-shape where the root is not the lowest fret of the template
+    // we need to adjust the shift. In our SHAPES, the root is at the fret where '0' is in the template.
+    const frets = tpl.frets.map((f: number | 'x') => {
+      if (f === 'x') return 'x';
+      return f + rootFret;
+    });
 
-  if (quality.includes('dim')) { // Diminished
-    return [
-      { frets: shiftFrets(['x', 0, 1, 2, 1, 'x'], offset), description: `Position one ${displayChord}` },
-      { frets: shiftFrets([1, 'x', 0, 1, 1, 'x'], offset - 1), description: `Position two ${displayChord}` },
-      { frets: shiftFrets(['x', 'x', 1, 2, 1, 2], offset - 1), description: `Position three ${displayChord}` },
-      { frets: shiftFrets(['x', 3, 4, 2, 4, 'x'], offset - 3), description: `Position four ${displayChord}` },
-    ];
-  }
-
-  // Default: Major Triads (CAGED)
-  return [
-    { frets: shiftFrets(['x', 0, 2, 2, 2, 0], offset), description: `Position one ${chordName}` }, // A Shape
-    { frets: shiftFrets([0, 2, 2, 1, 0, 0], offset + 8), description: `Position two ${chordName}` }, // E Shape
-    { frets: shiftFrets(['x', 'x', 0, 2, 3, 2], offset + 10), description: `Position three ${chordName}` }, // D Shape
-    { frets: shiftFrets(['x', 0, 2, 2, 2, 0], offset + 12), description: `Position four ${chordName}` }, // Octave A
-  ];
+    return {
+      frets,
+      description: `Position ${positions[i]} ${displayChord}`
+    };
+  }).sort((a, b) => {
+    // Ensure they are actually in order of the neck positions
+    const getMinFret = (v: Voicing) => Math.min(...v.frets.filter(f => typeof f === 'number') as number[]);
+    return getMinFret(a) - getMinFret(b);
+  });
 };
 
 /**
- * Builds a section's chord progression with music theory labels
+ * Builds a section's chord progression
  */
 export const buildSection = (
   root: Note, 

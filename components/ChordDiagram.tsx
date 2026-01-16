@@ -16,31 +16,29 @@ const ChordDiagram: React.FC<ChordDiagramProps> = ({ voicing, chordName }) => {
   const fretHeight = (height - 2 * margin - 10) / frets;
   const stringWidth = (width - 2 * margin) / (strings - 1);
 
-  // Determine the display window for the chord
+  // Filter numeric frets to determine the viewport window
   const numericFretsIgnoringOpen = voicing.frets.filter(f => typeof f === 'number' && f > 0) as number[];
   const minFret = numericFretsIgnoringOpen.length > 0 ? Math.min(...numericFretsIgnoringOpen) : 0;
   
-  // baseFret is 0 if any notes are in the first 4 frets, otherwise it's the minFret
+  // baseFret of 0 means we show the thick nut at the top
   const baseFret = minFret > 4 ? minFret : 0;
 
   return (
     <div className="flex flex-col items-center bg-white/[0.02] p-3 rounded-2xl border border-white/5 hover:bg-white/[0.04] hover:border-blue-500/30 transition-all duration-300 group w-full">
-      <span className="text-[10px] text-gray-400 mb-3 uppercase font-black tracking-widest group-hover:text-blue-400 transition-colors text-center w-full px-1 leading-tight">
+      <span className="text-[10px] text-gray-400 mb-3 uppercase font-black tracking-widest group-hover:text-blue-400 transition-colors text-center w-full px-1 leading-tight h-5 overflow-hidden flex items-center justify-center">
         {voicing.description}
       </span>
       
-      <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} className="drop-shadow-2xl">
+      <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} className="drop-shadow-2xl overflow-visible">
         {/* Nut or base fret indicator */}
         {baseFret > 0 ? (
           <>
-            <text x={width - 15} y={margin + 12} fontSize="11" fill="#94a3b8" fontWeight="900" textAnchor="start">
+            <text x={width - 12} y={margin + 12} fontSize="11" fill="#64748b" fontWeight="900" textAnchor="start">
               {baseFret}
             </text>
-            {/* Top thin line for high position boxes */}
             <line x1={margin} y1={margin} x2={width - margin} y2={margin} stroke="rgba(255,255,255,0.4)" strokeWidth="1" />
           </>
         ) : (
-          /* Thick Nut for open position */
           <line x1={margin} y1={margin} x2={width - margin} y2={margin} stroke="white" strokeWidth="4" />
         )}
 
@@ -88,22 +86,19 @@ const ChordDiagram: React.FC<ChordDiagramProps> = ({ voicing, chordName }) => {
             );
           }
 
-          // Calculate vertical position relative to the base fret window
-          // If baseFret is 5, fret 5 is the first space (relative k = 1)
-          // If baseFret is 0, fret 1 is the first space (relative k = 1)
+          // Calculate vertical position relative to the base fret
           const relativeFret = (fret as number) - (baseFret === 0 ? 0 : baseFret - 1);
           
-          // Only render if it fits in the 5-fret diagram window
+          // Only render if within the diagram box
           if (relativeFret < 1 || relativeFret > frets) return null;
           
-          // Center the note exactly in the middle of the fret space
+          // Vertically center exactly in the middle of the fret space
           const y = margin + (relativeFret - 0.5) * fretHeight;
 
           return (
             <g key={`note-${stringIdx}`}>
-              {/* Note marker centered on the string (vertical line) and between fret wires */}
-              <circle cx={x} cy={y} r="8" fill="#3b82f6" className="animate-in fade-in zoom-in duration-500 shadow-xl" />
-              <circle cx={x} cy={y} r="3" fill="white" fillOpacity="0.5" />
+              <circle cx={x} cy={y} r="8" fill="#3b82f6" className="animate-in fade-in zoom-in duration-300" />
+              <circle cx={x} cy={y} r="3" fill="white" fillOpacity="0.6" />
             </g>
           );
         })}
