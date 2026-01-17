@@ -10,7 +10,11 @@ export enum ScaleType {
   Mixolydian = 'Mixolydian',
   Locrian = 'Locrian',
   HarmonicMinor = 'Harmonic Minor',
-  Blues = 'Blues'
+  MelodicMinor = 'Melodic Minor',
+  PhrygianDominant = 'Phrygian Dominant',
+  Blues = 'Blues',
+  PentatonicMajor = 'Pentatonic Major',
+  PentatonicMinor = 'Pentatonic Minor'
 }
 
 export enum Genre {
@@ -24,7 +28,16 @@ export enum Genre {
   Metal = 'Metal',
   RnB = 'R&B',
   Reggae = 'Reggae',
-  Funk = 'Funk'
+  Funk = 'Funk',
+  BossaNova = 'Bossa Nova',
+  Synthwave = 'Synthwave',
+  Classical = 'Classical',
+  Folk = 'Folk',
+  Disco = 'Disco',
+  Trap = 'Trap',
+  Gospel = 'Gospel',
+  Grunge = 'Grunge',
+  Ambient = 'Ambient'
 }
 
 export interface Voicing {
